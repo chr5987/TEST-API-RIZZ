@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live API Dashboard</title>
+    
+    <!-- Load clean typography styling -->
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Ambient background glow elements */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.15);
+            filter: blur(80px);
+            z-index: 0;
+        }
+        body::before { top: 10%; left: 15%; }
+        body::after { bottom: 10%; right: 15%; background: rgba(236, 72, 153, 0.1); }
+
+        /* Dashboard UI Glassmorphism Container */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #6366f1;
+            font-size: 0.8rem;
+            margin-bottom: 32px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+        }
+
+        /* Screen window where data output goes */
+        .display-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        #content-text {
+            color: #f8fafc;
+            font-size: 1.35rem;
+            font-weight: 500;
+            line-height: 1.5;
+            transition: opacity 0.2s ease;
+            word-break: break-word;
+        }
+
+        /* Loading spinner element */
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s infinite linear;
+            position: absolute;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Action button style */
+        .refresh-btn {
+            background: #6366f1;
+            color: #ffffff;
+            border: none;
+            padding: 14px 28px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .refresh-btn:hover {
+            background: #4f46e5;
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.98);
+        }
+
+        .error-state {
+            color: #f87171 !important;
+            font-size: 0.95rem !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Live API Monitor</h1>
+        <div class="subtitle">celeste.ptwaffles.org</div>
+        
+        <div class="display-box">
+            <div id="spinner" class="spinner"></div>
+            <p id="content-text" style="opacity: 0;"></p>
+        </div>
+
+        <button id="refresh-button" class="refresh-btn">Fetch Data</button>
+    </div>
+
+    <script>
+        const contentText = document.getElementById('content-text');
+        const spinner = document.getElementById('spinner');
+        const refreshBtn = document.getElementById('refresh-button');
+
+        async function loadRawApiData() {
+            // Trigger UI loading state
+            spinner.style.display = 'block';
+            contentText.style.opacity = '0';
+            contentText.classList.remove('error-state');
+
+            try {
+                // Direct call using the native browser Fetch API
+                const response = await fetch('https://celeste.ptwaffles.org/api/collections/WEB_API/records/textapiproducti');
+                
+                // Read response body as JSON
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // Pull specific error messages returned by PocketBase
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+                
+                // Extract and display the custom 'text' field directly
+                contentText.innerText = data.text;
+
+            } catch (error) {
+                // Output explicit permission or network drops to screen container
+                contentText.innerText = "Error: " + error.message;
+                contentText.classList.add('error-state');
+                console.error("Fetch diagnostics:", error);
+            } finally {
+                // Re-display the text field container layout
+                spinner.style.display = 'none';
+                contentText.style.opacity = '1';
+            }
+        }
+
+        // Initialize listeners
+        refreshBtn.addEventListener('click', loadRawApiData);
+        document.addEventListener('DOMContentLoaded', loadRawApiData);
+    </script>
+
+</body>
+</html>
